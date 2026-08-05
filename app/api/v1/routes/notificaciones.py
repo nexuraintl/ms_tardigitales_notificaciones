@@ -7,7 +7,7 @@ from app.schemas.notificaciones import NotificationResponse, NotificationCreate
 router = APIRouter()
 
 @router.get("/notificaciones", response_model=List[NotificationResponse])
-async def get_notificaciones(client_id: int | None = Query(default=None)):
+async def get_notificaciones(client_id: int = Query(...)):
     connection = await get_client_connection(client_id)
     
     try:
@@ -45,8 +45,8 @@ async def get_notificaciones(client_id: int | None = Query(default=None)):
         connection.close()
 
 @router.post("/notificaciones", status_code=201, response_model=NotificationResponse)
-async def create_notification(data: NotificationCreate, client_id: int | None = Query(default=None)):
-    connection = await get_client_connection(client_id)
+async def create_notification(data: NotificationCreate):
+    connection = await get_client_connection(data.client_id)
     try:
         async with connection.cursor() as cursor:
             query = """
