@@ -3,7 +3,7 @@ import aiomysql
 
 # Conexión al Gestor de Base de Datos Central (gestion_bdconex)
 DB1_HOST = os.getenv("DB1_HOST")
-DB1_PORT = int(os.getenv("DB1_PORT", 3306))
+DB1_PORT = int(os.getenv("MYSQL_PORT", 3306))
 DB1_NAME = os.getenv("DB1_NAME")
 DB1_USER = os.getenv("DB1_USER")
 DB1_PASS = os.getenv("DB1_PASS")

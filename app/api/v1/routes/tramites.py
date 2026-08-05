@@ -7,7 +7,7 @@ from app.schemas.tramites import TramiteCreate, TramiteResponse
 router = APIRouter()
 
 @router.get("/tramites", response_model=List[TramiteResponse])
-async def get_tramites(client_id: int | None = Query(default=None)):
+async def get_tramites(client_id: int = Query(...)):
     connection = await get_client_connection(client_id)
     try:
         async with connection.cursor(aiomysql.DictCursor) as cursor:
@@ -25,7 +25,7 @@ async def get_tramites(client_id: int | None = Query(default=None)):
         connection.close()
 
 @router.get("/tramites/{id}", response_model=TramiteResponse)
-async def get_tramite(id: int, client_id: int | None = Query(default=None)):
+async def get_tramite(id: int, client_id: int = Query(...)):
     connection = await get_client_connection(client_id)
     try:
         async with connection.cursor(aiomysql.DictCursor) as cursor:
@@ -47,8 +47,8 @@ async def get_tramite(id: int, client_id: int | None = Query(default=None)):
         connection.close()
 
 @router.post("/tramites", response_model=TramiteResponse)
-async def create_tramite(tramite: TramiteCreate, client_id: int | None = Query(default=None)):
-    connection = await get_client_connection(client_id)
+async def create_tramite(tramite: TramiteCreate):
+    connection = await get_client_connection(tramite.client_id)
     try:
         async with connection.cursor() as cursor:
             query = """
@@ -77,8 +77,8 @@ async def create_tramite(tramite: TramiteCreate, client_id: int | None = Query(d
         connection.close()
 
 @router.put("/tramites/{id}", response_model=TramiteResponse)
-async def update_tramite(id: int, tramite: TramiteCreate, client_id: int | None = Query(default=None)):
-    connection = await get_client_connection(client_id)
+async def update_tramite(id: int, tramite: TramiteCreate):
+    connection = await get_client_connection(tramite.client_id)
     try:
         async with connection.cursor() as cursor:
             # Verificar primero si existe
@@ -116,7 +116,7 @@ async def update_tramite(id: int, tramite: TramiteCreate, client_id: int | None 
 
 @router.delete("/api/tramites/{id}", deprecated=True)
 @router.delete("/tramites/{id}")
-async def delete_tramite(id: int, client_id: int | None = Query(default=None)):
+async def delete_tramite(id: int, client_id: int = Query(...)):
     # Nota: También registramos /api/tramites/{id} por compatibilidad heredada del CRUD de Angular
     connection = await get_client_connection(client_id)
     try:
