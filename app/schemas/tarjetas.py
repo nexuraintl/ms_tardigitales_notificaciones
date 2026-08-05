@@ -14,7 +14,7 @@ class TarjetaBase(BaseModel):
     fecha: str
 
 class TarjetaCreate(TarjetaBase):
-    pass
+    client_id: int
 
 class TarjetaResponse(TarjetaBase):
     id: int
