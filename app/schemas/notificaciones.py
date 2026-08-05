@@ -15,6 +15,7 @@ class NotificationResponse(BaseModel):
         from_attributes = True
 
 class NotificationCreate(BaseModel):
+    client_id: int
     titulo: str
     canal: str
     audiencia: str

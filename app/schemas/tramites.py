@@ -8,7 +8,7 @@ class TramiteBase(BaseModel):
     descripcion: str
 
 class TramiteCreate(TramiteBase):
-    pass
+    client_id: int
 
 class TramiteResponse(TramiteBase):
     id: int
