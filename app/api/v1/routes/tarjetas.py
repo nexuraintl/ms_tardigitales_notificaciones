@@ -9,7 +9,7 @@ router = APIRouter()
 @router.get("/tarjetas", response_model=List[TarjetaResponse])
 async def get_tarjetas(
     tipo_tarjeta: Optional[str] = Query(default=None),
-    client_id: int | None = Query(default=None)
+    client_id: int = Query(...)
 ):
     connection = await get_client_connection(client_id)
     try:
@@ -42,8 +42,8 @@ async def get_tarjetas(
         connection.close()
 
 @router.post("/tarjetas", status_code=201, response_model=TarjetaResponse)
-async def create_tarjeta(data: TarjetaCreate, client_id: int | None = Query(default=None)):
-    connection = await get_client_connection(client_id)
+async def create_tarjeta(data: TarjetaCreate):
+    connection = await get_client_connection(data.client_id)
     try:
         async with connection.cursor() as cursor:
             query = """
