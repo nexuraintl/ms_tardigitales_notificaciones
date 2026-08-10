@@ -12,13 +12,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      - mongodb
       - redis
-
-  mongodb:
-    image: mongo:7
-    ports:
-      - "27017:27017"
 
   redis:
     image: redis:7
