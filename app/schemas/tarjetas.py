@@ -21,3 +21,12 @@ class TarjetaResponse(TarjetaBase):
 
     class Config:
         from_attributes = True
+
+class ValidadorConfigSave(BaseModel):
+    client_id: int
+    val_foto: int
+    val_nombres: int
+    val_matricula: int
+    val_numero_identificacion: int
+    val_codigo_tarjeta: int
+    val_estado: int

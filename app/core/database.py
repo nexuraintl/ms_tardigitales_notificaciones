@@ -46,46 +46,34 @@ async def get_client_connection(client_id: int | None = None):
         default_id = os.getenv("CLIENT_ID")
         client_id = int(default_id) if default_id else None
 
-    # 2. Intentar obtener configuración dinámica desde la base de datos central
-    if client_id:
-        config = await get_client_mysql_config(client_id)
-        if config:
-            try:
-                print(f"[Database Manager] Conectando dinámicamente a {config['nombreBaseDeDatos']} en {config['hosting']}")
-                connection = await aiomysql.connect(
-                    host=config["hosting"],
-                    port=int(config["puerto"] or 3306),
-                    user=config["usuario"],
-                    password=config["contrasena"],
-                    db=config["nombreBaseDeDatos"],
-                    autocommit=True
-                )
-                return connection
-            except Exception as e:
-                print(f"[Database Manager] Error al conectar a la BD dinámica del cliente {client_id}: {e}")
-                # Si falla, podemos continuar y usar el fallback local
+    if not client_id:
+        raise HTTPException(
+            status_code=400,
+            detail="No se proporcionó un ID de cliente (client_id) y no hay CLIENT_ID en el entorno."
+        )
 
-    # 3. Fallback: Conexión directa a base de datos de Laragon/desarrollo local
-    fallback_host = os.getenv("DB_HOST", "127.0.0.1")
-    fallback_port = int(os.getenv("DB_PORT", 3306))
-    fallback_user = os.getenv("DB_USER", "root")
-    fallback_pass = os.getenv("DB_PASS", "")
-    fallback_name = os.getenv("DB_NAME", "producto9_base")
+    # 2. Obtener configuración dinámica desde la base de datos central
+    config = await get_client_mysql_config(client_id)
+    if not config:
+        raise HTTPException(
+            status_code=500,
+            detail=f"No se encontró la configuración de base de datos para el cliente {client_id} en pre_gestion_bdconex."
+        )
 
     try:
-        print(f"[Database Manager] Usando conexión local de respaldo (fallback): {fallback_name} en {fallback_host}")
+        print(f"[Database Manager] Conectando dinámicamente a {config['nombreBaseDeDatos']} en {config['hosting']}")
         connection = await aiomysql.connect(
-            host=fallback_host,
-            port=fallback_port,
-            user=fallback_user,
-            password=fallback_pass,
-            db=fallback_name,
+            host=config["hosting"],
+            port=int(config["puerto"] or 3306),
+            user=config["usuario"],
+            password=config["contrasena"],
+            db=config["nombreBaseDeDatos"],
             autocommit=True
         )
         return connection
     except Exception as e:
-        print(f"[Database Manager] Error crítico de conexión en fallback: {e}")
+        print(f"[Database Manager] Error al conectar a la BD dinámica del cliente {client_id}: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error al establecer conexión con la base de datos local ({fallback_name})."
+            detail=f"Error de conexión con la base de datos del cliente {client_id} ({config['nombreBaseDeDatos']})."
         )
