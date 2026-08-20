@@ -30,10 +30,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Registrar rutas con el prefijo /api
-app.include_router(notificaciones_router, prefix="/api")
-app.include_router(tramites_router, prefix="/api")
-app.include_router(tarjetas_router, prefix="/api")
+# Registrar rutas sin prefijo /api
+app.include_router(notificaciones_router)
+app.include_router(tramites_router)
+app.include_router(tarjetas_router)
 
 @app.get("/")
 def read_root():

@@ -114,7 +114,6 @@ async def update_tramite(id: int, tramite: TramiteCreate):
     finally:
         connection.close()
 
-@router.delete("/api/tramites/{id}", deprecated=True)
 @router.delete("/tramites/{id}")
 async def delete_tramite(id: int, client_id: int = Query(...)):
     # Nota: También registramos /api/tramites/{id} por compatibilidad heredada del CRUD de Angular
