@@ -22,6 +22,10 @@ class TarjetaResponse(TarjetaBase):
     class Config:
         from_attributes = True
 
+class TarjetaHistorialRequest(BaseModel):
+    tarjeta_id: int
+    client_id: int
+
 class ValidadorConfigSave(BaseModel):
     client_id: int
     val_foto: int
