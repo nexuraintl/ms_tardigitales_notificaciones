@@ -1,37 +1,57 @@
-import os
 from fastapi import FastAPI
-from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
+from app.api.v1.routes import notificaciones, tarjetas, tramites
 
-# Cargar variables de entorno desde el archivo .env
-load_dotenv()
-
-# Importar enrutadores de la API
-from app.api.v1.routes.notificaciones import router as notificaciones_router
-from app.api.v1.routes.tramites import router as tramites_router
-from app.api.v1.routes.tarjetas import router as tarjetas_router
+tags_metadata = [
+    {
+        "name": "Tarjetas Digitales",
+        "description": "Gestión de solicitudes, emisión, credenciales digitales e historial de estados y lecturas QR para Contadores y Sociedades.",
+    },
+    {
+        "name": "Gestión de Trámites",
+        "description": "Administración del catálogo oficial de trámites, costos, vigencia y requisitos para la entidad.",
+    },
+    {
+        "name": "Centro de Notificaciones",
+        "description": "Emisión masiva y programación de notificaciones push, alertas y comunicados oficiales.",
+    },
+    {
+        "name": "Configuración y Utilidades",
+        "description": "Parámetros del validador público QR y consulta de certificados generados.",
+    },
+]
 
 app = FastAPI(
-    title="JCC Notifications & Tramites API",
-    description="Microservicio en Python FastAPI modular para la gestión de notificaciones y trámites de la Junta Central de Contadores",
+    title="Microservicio de Tarjetas Digitales y Notificaciones",
+    description="API Gateway Backend para la gestión de tarjetas profesionales digitales, trámites, validación QR y centro de notificaciones institucionales de nxPlatform.",
     version="1.0.0",
-    root_path=os.getenv("ROOT_PATH", "/apig/tardigitales")
+    openapi_tags=tags_metadata,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
 )
 
-# Registrar rutas sin prefijo /api
-app.include_router(notificaciones_router)
-app.include_router(tramites_router)
-app.include_router(tarjetas_router)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get("/")
-def read_root():
+app.include_router(tarjetas.router, prefix="", tags=["Tarjetas Digitales"])
+app.include_router(tramites.router, prefix="", tags=["Gestión de Trámites"])
+app.include_router(notificaciones.router, prefix="", tags=["Centro de Notificaciones"])
+
+@app.get("/", tags=["Configuración y Utilidades"], summary="Estado general del servicio")
+def root():
     return {
         "status": "online",
-        "service": "JCC Notifications & Tramites API",
+        "service": "ms_tardigitales_notificaciones",
+        "version": "1.0.0",
         "documentation": "/docs"
     }
 
-@app.get("/health")
+@app.get("/health", tags=["Configuración y Utilidades"], summary="Verificación de salud (Healthcheck)")
 def health():
-    return {
-        "status": "ok"
-    }
+    return {"status": "ok", "healthy": True}
