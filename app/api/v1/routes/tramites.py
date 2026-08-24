@@ -47,8 +47,8 @@ async def get_tramite(id: int, client_id: int = Query(...)):
         connection.close()
 
 @router.post("/tramites", response_model=TramiteResponse)
-async def create_tramite(tramite: TramiteCreate):
-    connection = await get_client_connection(tramite.client_id)
+async def create_tramite(tramite: TramiteCreate, client_id: int = Query(...)):
+    connection = await get_client_connection(client_id)
     try:
         async with connection.cursor() as cursor:
             query = """
@@ -77,8 +77,8 @@ async def create_tramite(tramite: TramiteCreate):
         connection.close()
 
 @router.put("/tramites/{id}", response_model=TramiteResponse)
-async def update_tramite(id: int, tramite: TramiteCreate):
-    connection = await get_client_connection(tramite.client_id)
+async def update_tramite(id: int, tramite: TramiteCreate, client_id: int = Query(...)):
+    connection = await get_client_connection(client_id)
     try:
         async with connection.cursor() as cursor:
             # Verificar primero si existe
