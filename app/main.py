@@ -1,6 +1,5 @@
 import os
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde el archivo .env
@@ -14,20 +13,8 @@ from app.api.v1.routes.tarjetas import router as tarjetas_router
 app = FastAPI(
     title="JCC Notifications & Tramites API",
     description="Microservicio en Python FastAPI modular para la gestión de notificaciones y trámites de la Junta Central de Contadores",
-    version="1.0.0"
-)
-
-# Configurar CORS (Cross-Origin Resource Sharing)
-# Esto permite que la aplicación de Angular (puerto 4300) consuma esta API
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://local-jcc.ng.nexura.com:4300",
-        "http://localhost:4300"
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    version="1.0.0",
+    root_path=os.getenv("ROOT_PATH", "/apig/tardigitales")
 )
 
 # Registrar rutas sin prefijo /api
