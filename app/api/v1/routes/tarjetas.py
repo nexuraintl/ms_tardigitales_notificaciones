@@ -2,15 +2,12 @@ from fastapi import APIRouter, Query, HTTPException
 from typing import List, Optional
 import aiomysql
 from app.core.database import get_client_connection
-from app.schemas.tarjetas import TarjetaResponse, TarjetaCreate, ValidadorConfigSave
+from app.schemas.tarjetas import TarjetaCreate, TarjetaResponse, TarjetaHistorialRequest, ValidadorConfigSave
 
 router = APIRouter()
 
 @router.get("/tarjetas", response_model=List[TarjetaResponse])
-async def get_tarjetas(
-    tipo_tarjeta: Optional[str] = Query(default=None),
-    client_id: int = Query(...)
-):
+async def get_tarjetas(tipo_tarjeta: Optional[str] = None, client_id: int = Query(...)):
     connection = await get_client_connection(client_id)
     try:
         async with connection.cursor(aiomysql.DictCursor) as cursor:
@@ -36,7 +33,7 @@ async def get_tarjetas(
         print(f"Error al consultar tarjetas: {e}")
         raise HTTPException(
             status_code=500,
-            detail="Error al consultar las tarjetas en la base de datos."
+            detail="Error al consultar las tarjetas en la base de datos (MS-3830)."
         )
     finally:
         connection.close()
@@ -82,14 +79,14 @@ async def create_tarjeta(data: TarjetaCreate):
         print(f"Error al registrar tarjeta: {e}")
         raise HTTPException(
             status_code=500,
-            detail="Error al registrar la tarjeta en la base de datos."
+            detail="Error al registrar la tarjeta en la base de datos (MS-3831)."
         )
     finally:
         connection.close()
 
-@router.get("/tarjetas/{tarjeta_id}/historial")
-async def get_tarjeta_historial(tarjeta_id: int, client_id: int = Query(...)):
-    connection = await get_client_connection(client_id)
+@router.post("/tarjetas/historial")
+async def get_tarjeta_historial(data: TarjetaHistorialRequest):
+    connection = await get_client_connection(data.client_id)
     try:
         async with connection.cursor(aiomysql.DictCursor) as cursor:
             # 1. Consultar estados
@@ -100,7 +97,7 @@ async def get_tarjeta_historial(tarjeta_id: int, client_id: int = Query(...)):
                 WHERE tarjeta_id = %s
                 ORDER BY fecha ASC;
                 """,
-                (tarjeta_id,)
+                (data.tarjeta_id,)
             )
             estados = await cursor.fetchall()
 
@@ -112,7 +109,7 @@ async def get_tarjeta_historial(tarjeta_id: int, client_id: int = Query(...)):
                 WHERE tarjeta_id = %s
                 ORDER BY fecha DESC;
                 """,
-                (tarjeta_id,)
+                (data.tarjeta_id,)
             )
             lecturas = await cursor.fetchall()
 
@@ -124,7 +121,7 @@ async def get_tarjeta_historial(tarjeta_id: int, client_id: int = Query(...)):
         print(f"Error al consultar historial: {e}")
         raise HTTPException(
             status_code=500,
-            detail="Error al consultar el historial de la tarjeta en la base de datos."
+            detail="Error al consultar el historial de la tarjeta en la base de datos (MS-3832)."
         )
     finally:
         connection.close()
@@ -158,7 +155,7 @@ async def get_validador_config(client_id: int = Query(...)):
         print(f"Error al consultar config de validador: {e}")
         raise HTTPException(
             status_code=500,
-            detail="Error al consultar la configuración del validador."
+            detail="Error al consultar la configuración del validador (MS-3850)."
         )
     finally:
         connection.close()
@@ -195,7 +192,7 @@ async def save_validador_config(data: ValidadorConfigSave):
         print(f"Error al guardar config de validador: {e}")
         raise HTTPException(
             status_code=500,
-            detail="Error al guardar la configuración del validador."
+            detail="Error al guardar la configuración del validador (MS-3851)."
         )
     finally:
         connection.close()
@@ -220,7 +217,7 @@ async def get_certificados(client_id: int = Query(...)):
         print(f"Error al consultar certificados: {e}")
         raise HTTPException(
             status_code=500,
-            detail="Error al consultar los certificados en la base de datos."
+            detail="Error al consultar los certificados en la base de datos (MS-3860)."
         )
     finally:
         connection.close()
