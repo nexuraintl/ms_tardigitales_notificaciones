@@ -1,13 +1,26 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Path
 from typing import List, Optional
 import aiomysql
 from app.core.database import get_client_connection
-from app.schemas.tarjetas import TarjetaCreate, TarjetaResponse, TarjetaHistorialRequest, ValidadorConfigSave
+from app.schemas.tarjetas import (
+    TarjetaCreate, TarjetaResponse, HistorialTarjetaResponse,
+    ValidadorConfigSave, ValidadorConfigResponse, CertificadoResponse
+)
+from app.schemas.tramites import StandardMessageResponse
 
 router = APIRouter()
 
-@router.get("/tarjetas", response_model=List[TarjetaResponse])
-async def get_tarjetas(tipo_tarjeta: Optional[str] = None, client_id: int = Query(...)):
+@router.get(
+    "/tarjetas",
+    response_model=List[TarjetaResponse],
+    tags=["Tarjetas Digitales"],
+    summary="Listar tarjetas digitales emitidas",
+    description="Consulta las tarjetas digitales emitidas para la entidad, permitiendo filtrar por tipo (contadores / sociedades)."
+)
+async def get_tarjetas(
+    client_id: int = Query(..., description="ID de la entidad cliente (ej. 20001)"),
+    tipo_tarjeta: Optional[str] = Query(None, description="Filtro por tipo de tarjeta: 'contadores' o 'sociedades'")
+):
     connection = await get_client_connection(client_id)
     try:
         async with connection.cursor(aiomysql.DictCursor) as cursor:
@@ -38,7 +51,50 @@ async def get_tarjetas(tipo_tarjeta: Optional[str] = None, client_id: int = Quer
     finally:
         connection.close()
 
-@router.post("/tarjetas", status_code=201, response_model=TarjetaResponse)
+@router.get(
+    "/tarjetas/{id}",
+    response_model=TarjetaResponse,
+    tags=["Tarjetas Digitales"],
+    summary="Consultar detalle de una tarjeta",
+    description="Obtiene los datos completos de una credencial digital por su ID."
+)
+async def get_tarjeta_by_id(
+    id: int = Path(..., description="ID de la tarjeta"),
+    client_id: int = Query(..., description="ID de la entidad cliente")
+):
+    connection = await get_client_connection(client_id)
+    try:
+        async with connection.cursor(aiomysql.DictCursor) as cursor:
+            query = """
+                SELECT id, tipo_tarjeta, codigo, expediente, solicitante, documento, matricula, correo, representante, tarjeta, DATE_FORMAT(fecha, '%%Y-%%m-%%d') as fecha
+                FROM tn_tarjetavirtual_tarjetas
+                WHERE id = %s
+                LIMIT 1;
+            """
+            await cursor.execute(query, (id,))
+            record = await cursor.fetchone()
+            if not record:
+                raise HTTPException(status_code=404, detail="Tarjeta digital no encontrada (MS-3806).")
+            return record
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error al consultar tarjeta {id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Error al consultar la tarjeta en la base de datos (MS-3830)."
+        )
+    finally:
+        connection.close()
+
+@router.post(
+    "/tarjetas",
+    status_code=201,
+    response_model=TarjetaResponse,
+    tags=["Tarjetas Digitales"],
+    summary="Emisión y registro de nueva tarjeta digital",
+    description="Registra una nueva tarjeta profesional y genera el primer evento de trazabilidad en su historial."
+)
 async def create_tarjeta(data: TarjetaCreate):
     connection = await get_client_connection(data.client_id)
     try:
@@ -84,9 +140,18 @@ async def create_tarjeta(data: TarjetaCreate):
     finally:
         connection.close()
 
-@router.post("/tarjetas/historial")
-async def get_tarjeta_historial(data: TarjetaHistorialRequest):
-    connection = await get_client_connection(data.client_id)
+@router.get(
+    "/tarjetas/{id}/historial",
+    response_model=HistorialTarjetaResponse,
+    tags=["Tarjetas Digitales"],
+    summary="Consultar trazabilidad de una tarjeta",
+    description="Obtiene el historial cronológico de cambios de estado y registro de lecturas públicas QR."
+)
+async def get_tarjeta_historial(
+    id: int = Path(..., description="ID de la tarjeta"),
+    client_id: int = Query(..., description="ID de la entidad cliente")
+):
+    connection = await get_client_connection(client_id)
     try:
         async with connection.cursor(aiomysql.DictCursor) as cursor:
             # 1. Consultar estados
@@ -97,7 +162,7 @@ async def get_tarjeta_historial(data: TarjetaHistorialRequest):
                 WHERE tarjeta_id = %s
                 ORDER BY fecha ASC;
                 """,
-                (data.tarjeta_id,)
+                (id,)
             )
             estados = await cursor.fetchall()
 
@@ -109,7 +174,7 @@ async def get_tarjeta_historial(data: TarjetaHistorialRequest):
                 WHERE tarjeta_id = %s
                 ORDER BY fecha DESC;
                 """,
-                (data.tarjeta_id,)
+                (id,)
             )
             lecturas = await cursor.fetchall()
 
@@ -126,8 +191,14 @@ async def get_tarjeta_historial(data: TarjetaHistorialRequest):
     finally:
         connection.close()
 
-@router.get("/validador-qr/config")
-async def get_validador_config(client_id: int = Query(...)):
+@router.get(
+    "/validador-qr/config",
+    response_model=ValidadorConfigResponse,
+    tags=["Configuración y Utilidades"],
+    summary="Consultar configuración del validador público QR",
+    description="Obtiene los flags de visibilidad de campos en la pantalla de verificación pública."
+)
+async def get_validador_config(client_id: int = Query(..., description="ID de la entidad cliente")):
     connection = await get_client_connection(client_id)
     try:
         async with connection.cursor(aiomysql.DictCursor) as cursor:
@@ -160,7 +231,13 @@ async def get_validador_config(client_id: int = Query(...)):
     finally:
         connection.close()
 
-@router.post("/validador-qr/config")
+@router.post(
+    "/validador-qr/config",
+    response_model=StandardMessageResponse,
+    tags=["Configuración y Utilidades"],
+    summary="Guardar configuración del validador QR",
+    description="Actualiza qué campos son visibles en la consulta pública del código QR."
+)
 async def save_validador_config(data: ValidadorConfigSave):
     connection = await get_client_connection(data.client_id)
     try:
@@ -197,8 +274,14 @@ async def save_validador_config(data: ValidadorConfigSave):
     finally:
         connection.close()
 
-@router.get("/certificados")
-async def get_certificados(client_id: int = Query(...)):
+@router.get(
+    "/certificados",
+    response_model=List[CertificadoResponse],
+    tags=["Configuración y Utilidades"],
+    summary="Consultar certificados emitidos",
+    description="Obtiene la lista de certificados generados para los contadores y sociedades."
+)
+async def get_certificados(client_id: int = Query(..., description="ID de la entidad cliente")):
     connection = await get_client_connection(client_id)
     try:
         async with connection.cursor(aiomysql.DictCursor) as cursor:
