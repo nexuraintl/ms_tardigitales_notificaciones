@@ -18,9 +18,18 @@ async def get_notificaciones(client_id: int = Query(..., description="ID de la e
     try:
         async with connection.cursor(aiomysql.DictCursor) as cursor:
             query = """
-                SELECT id, client_id, titulo, canal, audiencia, destinatarios, DATE_FORMAT(fecha, '%%Y-%%m-%%d %%H:%%i:%%s') as fecha, estado, creadoPor, mensaje
+                SELECT 
+                    id, 
+                    %s as client_id, 
+                    titulo, 
+                    canal, 
+                    audiencia, 
+                    destinatarios, 
+                    fecha, 
+                    estado, 
+                    creado_por as creadoPor, 
+                    mensaje
                 FROM tn_tarjetavirtual_notificaciones
-                WHERE client_id = %s
                 ORDER BY id DESC;
             """
             await cursor.execute(query, (client_id,))
@@ -49,11 +58,10 @@ async def create_notificacion(data: NotificationCreate):
         async with connection.cursor() as cursor:
             query = """
                 INSERT INTO tn_tarjetavirtual_notificaciones (
-                    client_id, titulo, canal, audiencia, destinatarios, fecha, estado, creadoPor, mensaje
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+                    titulo, canal, audiencia, destinatarios, fecha, estado, creado_por, mensaje
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
             """
             params = (
-                data.client_id,
                 data.titulo,
                 data.canal,
                 data.audiencia,
