@@ -25,3 +25,9 @@ class ValidadorConfigSchema(BaseModel):
     val_numero_identificacion: Optional[bool] = True
     val_codigo_tarjeta: Optional[bool] = True
     val_estado: Optional[bool] = True
+
+class ConsultaMatriculaResponseSchema(BaseModel):
+    disponibles: list[Dict[str, Any]] = []
+    pdf: Optional[str] = None
+    encontrado: bool = False
+

@@ -13,6 +13,16 @@ async def list_tarjetas(
 ):
     return await service.list_tarjetas(tipo_tarjeta, client_id)
 
+@router.get("/consult-registry")
+async def consult_registry(
+    documento: str = Query(..., description="Número de documento de identidad o NIT a consultar"),
+    tipo_tarjeta: str = Query("contadores", description="Tipo de registro ('contadores' o 'sociedades')"),
+    tipo: Optional[str] = Query("", description="Tipo de consulta ('primeraVez', 'modificacion', etc.)"),
+    client_id: Optional[int] = Query(None, description="ID de la entidad cliente")
+):
+    return await service.consult_registry(documento, tipo_tarjeta, tipo, client_id)
+
+
 @router.get("/get/{id}")
 async def get_tarjeta(
     id: int = Path(..., description="ID de la tarjeta"),

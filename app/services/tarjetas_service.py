@@ -1,12 +1,44 @@
 from typing import List, Dict, Any, Optional
 from fastapi import HTTPException
 from app.repositories.tarjetas_repository import TarjetasRepository
-from app.schemas.tarjetas_schema import TarjetaCreateSchema, ValidadorConfigSchema
+from app.schemas.tarjetas_schema import TarjetaCreateSchema, ValidadorConfigSchema, ConsultaMatriculaResponseSchema
+from app.integrations.jcc_client import JccClient
 
 class TarjetasService:
 
     def __init__(self):
         self.repository = TarjetasRepository()
+        self.jcc_client = JccClient()
+
+    async def consult_registry(
+        self,
+        documento: str,
+        tipo_tarjeta: str = "contadores",
+        tipo: str = "",
+        client_id: Optional[int] = None
+    ) -> Dict[str, Any]:
+        try:
+            if not documento or not str(documento).strip():
+                raise HTTPException(
+                    status_code=400,
+                    detail="El número de documento o NIT es requerido para la consulta (MS-3833)."
+                )
+
+            # Consultar API de la JCC a través del módulo de integraciones
+            result = await self.jcc_client.consultar_registro(
+                documento=documento,
+                tipo_tarjeta=tipo_tarjeta,
+                tipo=tipo
+            )
+            return result
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"[TarjetasService] Error al consultar matrícula/registro JCC: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail="Error al consultar el registro institucional en la API de la JCC (MS-3834)."
+            )
 
     async def list_tarjetas(self, tipo_tarjeta: Optional[str] = None, client_id: Optional[int] = None) -> List[Dict[str, Any]]:
         try:
@@ -94,3 +126,4 @@ class TarjetasService:
                 status_code=500,
                 detail="No fue posible guardar la configuración del validador (MS-3851)."
             )
+
