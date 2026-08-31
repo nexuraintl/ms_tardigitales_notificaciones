@@ -18,7 +18,7 @@ class TramitesRepository:
                         estado,
                         descripcion
                     FROM tn_tarjetavirtual_tramites
-                    ORDER BY id ASC
+                    ORDER BY id DESC
                     """
                 )
                 rows = await cursor.fetchall()
